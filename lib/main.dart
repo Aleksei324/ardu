@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 140, 219, 225)),
         useMaterial3: true,
-        fontFamily: 'Ubuntu'
+        fontFamily: 'Ubuntu', // no funciona lol
       ),
       home: const MyHomePage(),
     );
@@ -57,29 +57,41 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  static const List<String> listBotones = [
+    'ACTIVAR PARADA', 'ACTIVAR ARRANQUE',
+    'INCREMENTAR VELOCIDAD', 'REDUCIR VELOCIDAD',
+    'COMENZAR CICLO'
+  ];
+  static const List<String> listDescripciones = [
+    'El comando de parada detiene el giro del motor independientemente de su nivel de velocidad.',
+    'El comando de arranque reanuda el giro del motor en el nivel de velocidad que tenía.',
+    'El comando de incremento, por cada pulsada, incrementa la velocidad del motor.',
+    'El comando de reducción, por cada pulsada, disminuye la velocidad del motor.',
+    'El comando de ciclo inicia el ciclo de control cuando es presionado durante una parada.'
+  ];
+  static const List<IconData> listIconos = [
+    Icons.pause_rounded, Icons.play_arrow_rounded,
+    Icons.fast_forward_rounded, Icons.fast_rewind_rounded,
+    Icons.all_inclusive_rounded
+  ];
+
+  CarouselController buttonCarouselController = CarouselController();
+
   int _comandoActual = 0;
   String _descripcion = '¡Bienvenido a Ardu!';
   IconData _logoComando = Icons.celebration;
-  final bool _conectado = false;
-  final String _address = 'HC-05 98:D3:51:FD::';
+  bool _conectado = true;
+  String _address = 'HC-05 98:D3:51:FD::';
 
   void ejecutarComando(int comando) {
 
   }
+
+  void ejecutarComand(int comando) {
+    
+  }
   
   void _cambiarComando(int nuevoCom) {
-    final List<String> listDescripciones = [
-      'El comando de parada detiene el giro del motor independientemente de su nivel de velocidad.',
-      'El comando de arranque reanuda el giro del motor en el nivel de velocidad que tenía.',
-      'El comando de incremento, por cada pulsada, incrementa la velocidad del motor.',
-      'El comando de reducción, por cada pulsada, disminuye la velocidad del motor.',
-      'El comando de ciclo inicia el ciclo de control cuando es presionado durante una parada.'
-    ];
-    final List<IconData> listIconos = [
-      Icons.pause_rounded, Icons.play_arrow_rounded,
-      Icons.fast_forward_rounded, Icons.fast_rewind_rounded,
-      Icons.all_inclusive_rounded
-    ];
     setState(() {
       _comandoActual = nuevoCom;
       _descripcion = listDescripciones[nuevoCom];
@@ -105,29 +117,52 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         //title: Text(widget.title),
         actions: <Widget>[
-          Icon(
-            _conectado ? Icons.bluetooth_connected_rounded : Icons.bluetooth_disabled_rounded,
-            color: _conectado ? const Color.fromARGB(255, 63, 129, 129):Colors.red,
+
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+
+                  Icon(
+                    _conectado ? Icons.bluetooth_connected_rounded : Icons.bluetooth_disabled_rounded,
+                    color: _conectado ? const Color.fromARGB(255, 63, 129, 129):Colors.red,
+                  ),
+
+                  Text(
+                    _conectado ? 'CONECTADO':'DESCONECTADO',
+                    style: TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold, 
+                      color: _conectado ? const Color.fromARGB(255, 63, 129, 129):Colors.red,
+                    ),
+                  ),
+
+                ],
+              ),
+              
+              Text(
+                _conectado ? _address : '',
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: Color.fromARGB(255, 34, 67, 67),
+                ),
+              ),
+
+            ],
           ),
-          Text(
-            _conectado ? 'CONECTADO':'DESCONECTADO',
-            style: TextStyle(
-              fontSize: 24, fontWeight: FontWeight.bold, 
-              color: _conectado ? const Color.fromARGB(255, 63, 129, 129):Colors.red,
-            ),
-          ),
-          Text(
-            _conectado ? _address:'',
-            style: const TextStyle(
-              fontSize: 20,
-            ),
-          ),
+
         ],
       ),
+
+
+
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
-        child: Column(
+        child: 
+        Column(
           // Column is also a layout widget. It takes a list of children and
           // arranges them vertically. By default, it sizes itself to fit its
           // children horizontally, and tries to be as tall as its parent.
@@ -141,54 +176,86 @@ class _MyHomePageState extends State<MyHomePage> {
           // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
           // action in the IDE, or press "p" in the console), to see the
           // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
-            const Text(
-              'Comando seleccionado:',
-              style: TextStyle(fontSize: 18),
-            ),
-            CarouselSlider(
-              options: CarouselOptions(
-                autoPlayInterval: const Duration(seconds: 30),
-                initialPage: 0, autoPlay: true, height: 200,
-                enlargeCenterPage: true, enlargeFactor: 0.3,
-                scrollDirection: Axis.horizontal
-              ),
-              items: [
-                'PARADA', 'ARRANQUE',
-                'INCREMENTAR', 'REDUCIR',
-                'CICLO'
-              ].map((i) {
-                return Builder(builder: (BuildContext context) {
-                  return SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    child: FilledButton(
-                      onPressed: () {ejecutarComando(_comandoActual);},
-                      child: Padding(
-                        padding:const EdgeInsets.all(10),
-                        child: Text(i,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold, height: 0.9),
-                        ),
+
+          const Divider(
+            height: 50,
+            color: Color.fromARGB(0, 0, 0, 0),
+          ),
+
+            CarouselSlider.builder(
+              itemCount: 5,
+              itemBuilder: (BuildContext context, int itemIndex, int pageViewIndex){
+                return SizedBox(
+                  width: MediaQuery.of(context).size.width,
+                  child: 
+                  FilledButton.tonal(
+                    onPressed: () {ejecutarComando(_comandoActual);},
+                    child: 
+                    Padding(
+                      padding:const EdgeInsets.all(10),
+                      child: 
+                      Text(listBotones[itemIndex],
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Color.fromARGB(255, 63, 129, 129),
+                          fontSize: 30, fontWeight: FontWeight.bold, height: 0.9),
                       ),
                     ),
-                  );
-                },);
-              }).toList(),
-            ),
-            Padding(
-              padding:const EdgeInsets.all(50),
-              child: Text(
-                _descripcion,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 24),
+                  ),
+                );
+              },
+              carouselController: buttonCarouselController,
+              options: CarouselOptions(
+                autoPlayInterval: const Duration(seconds: 10),
+                initialPage: 0, autoPlay: true, height: 200,
+                enlargeCenterPage: true, enlargeFactor: 0.3,
+                scrollDirection: Axis.horizontal,
               ),
             ),
+
+            Padding(
+              padding:const EdgeInsets.all(50),
+              child: 
+              Text(
+                _descripcion,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 24, 
+                  color: Color.fromARGB(255, 34, 67, 67),
+                ),
+              ),
+            ),
+
             Icon(
               _logoComando,
               size: 50.0,
               color: const Color.fromARGB(255, 34, 67, 67),
             ),
+
+          ],
+        ),
+      ),
+
+
+
+      bottomNavigationBar: BottomAppBar(
+        surfaceTintColor: const Color.fromARGB(0, 0, 0, 0),
+        child: 
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+
+            IconButton(
+              onPressed: (){buttonCarouselController.previousPage();},
+              icon: const Icon(Icons.navigate_before_rounded),
+            ),
+
+            IconButton(
+              onPressed: (){buttonCarouselController.nextPage();},
+              icon: const Icon(Icons.navigate_next_rounded),
+            ),
+
           ],
         ),
       ), // This trailing comma makes auto-formatting nicer for build methods.

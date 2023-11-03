@@ -1,6 +1,6 @@
-# ardu
+# Ardu
 
-A new Flutter project.
+Un nuevo proyecto de Flutter para la materia de arquitectura de computadores, creado por Norman Pabón, Christian David Chacon, Javier Lopez y Camilo Franco Moya.
 
 ## Getting Started
 
