@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
 void main() {
   runApp(const MyApp());
@@ -29,10 +33,22 @@ class MyApp extends StatelessWidget {
         //
         // This works for code too, not just values: Most code changes can be
         // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 140, 219, 225)),
         useMaterial3: true,
-        fontFamily: 'Ubuntu', // no funciona lol
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color.fromARGB(255, 140, 219, 225), 
+          brightness: Brightness.light,
+        ),
+        fontFamily: 'Ubuntu',
       ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color.fromARGB(255, 140, 219, 225), 
+          brightness: Brightness.dark,
+        ),
+        fontFamily: 'Ubuntu',
+      ),
+      themeMode: ThemeMode.system,
       home: const MyHomePage(),
     );
   }
@@ -79,24 +95,76 @@ class _MyHomePageState extends State<MyHomePage> {
 
   int _comandoActual = 0;
   String _descripcion = '¡Bienvenido a Ardu!';
-  IconData _logoComando = Icons.celebration;
-  bool _conectado = true;
-  String _address = 'HC-05 98:D3:51:FD::';
 
-  void ejecutarComando(int comando) {
-
-  }
-
-  void ejecutarComand(int comando) {
-    
-  }
+  BluetoothConnection? _conexion;
+  bool _estaConectado = false;
+  bool _cargandoBluetooth = false;
+  String _address = '';
   
   void _cambiarComando(int nuevoCom) {
     setState(() {
       _comandoActual = nuevoCom;
       _descripcion = listDescripciones[nuevoCom];
-      _logoComando = listIconos[nuevoCom];
     });
+  }
+
+  Future<void> _connectToDevice() async {
+    setState(() {
+      _cargandoBluetooth = true;
+    });
+
+    final List<BluetoothDevice> devices = await FlutterBluetoothSerial.instance.getBondedDevices();
+    final BluetoothDevice testDevice = devices.firstWhere((d) => d.name == "HC-05", orElse: () {return const BluetoothDevice(address: '');});
+    
+    if (testDevice.address != '') {
+      final BluetoothConnection connection = await BluetoothConnection.toAddress(testDevice.address);
+      setState(() {
+        _conexion = connection;
+        _address = '${testDevice.name} ${testDevice.address}';
+        _estaConectado = true;
+      });
+    }
+
+    setState(() {
+      _cargandoBluetooth = false;
+    });
+  }
+
+  Future<void> _disconnectFromDevice() async {
+    setState(() {
+      _cargandoBluetooth = true;
+    });
+
+    await _conexion!.finish();
+
+    setState(() {
+      _conexion = null;
+      _address = '';
+      _estaConectado = false;
+      _cargandoBluetooth = false;
+    });
+  }
+
+  Future<List> _sendData(int value) async {
+    String mensaje = 'Error.';
+    Color color = const Color.fromARGB(255, 150, 0, 0);
+
+    if (_cargandoBluetooth == false) {
+      if (_conexion != null) {
+        Uint8List bytes = Uint8List.fromList(utf8.encode(value.toString()));
+        _conexion!.output.add(bytes);
+        await _conexion!.output.allSent;
+        mensaje = '¡Comando enviado!';
+        color = const Color.fromARGB(255, 63, 129, 129);
+      }
+      else {
+        mensaje = 'No existe conexión con el Arduino.';
+      }
+    }
+    else {
+      mensaje = 'La conexión esta ocupada en otro proceso, espere un momento.';
+    }
+    return [mensaje, color];
   }
 
   @override
@@ -108,6 +176,9 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
+
+      // ### BARRA SUPERIOR DE LA APLICACIÓN ###
+
       appBar: AppBar(
         // TRY THIS: Try changing the color here to a specific color (to
         // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
@@ -116,6 +187,21 @@ class _MyHomePageState extends State<MyHomePage> {
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
         //title: Text(widget.title),
+        leading: 
+          IconButton(
+            onPressed: (){
+              if (_cargandoBluetooth == false) {
+                if (_estaConectado) {
+                  _disconnectFromDevice();
+                }
+                else {
+                  _connectToDevice();
+                }
+              }
+            },
+            tooltip: _estaConectado ? 'Desconectar' : 'Conectar',
+            icon: const Icon(Icons.power_settings_new_rounded), 
+          ),
         actions: <Widget>[
 
           Column(
@@ -126,16 +212,28 @@ class _MyHomePageState extends State<MyHomePage> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: <Widget>[
 
-                  Icon(
-                    _conectado ? Icons.bluetooth_connected_rounded : Icons.bluetooth_disabled_rounded,
-                    color: _conectado ? const Color.fromARGB(255, 63, 129, 129):Colors.red,
+                  Container(
+                    width: 20,
+                    height: 20,
+                    margin: const EdgeInsets.only(right: 10),
+                    child: _cargandoBluetooth ? 
+                      CircularProgressIndicator(
+                        value: null,
+                        semanticsLabel: 'Indicador de progreso circular',
+                        color: _estaConectado ? const Color.fromARGB(255, 63, 129, 129):const Color.fromARGB(255, 150, 0, 0),
+                      )
+                      :
+                      Icon(
+                        _estaConectado ? Icons.bluetooth_connected_rounded : Icons.bluetooth_disabled_rounded,
+                        color: _estaConectado ? const Color.fromARGB(255, 63, 129, 129):const Color.fromARGB(255, 150, 0, 0),
+                      )
                   ),
 
                   Text(
-                    _conectado ? 'CONECTADO':'DESCONECTADO',
+                    _estaConectado ? 'ENLAZADO':'NO ENLAZADO',
                     style: TextStyle(
-                      fontSize: 24, fontWeight: FontWeight.bold, 
-                      color: _conectado ? const Color.fromARGB(255, 63, 129, 129):Colors.red,
+                      fontSize: _estaConectado ? 24 : 28, fontWeight: FontWeight.bold,
+                      color: _estaConectado ? const Color.fromARGB(255, 63, 129, 129):const Color.fromARGB(255, 150, 0, 0),
                     ),
                   ),
 
@@ -143,11 +241,9 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               
               Text(
-                _conectado ? _address : '',
-                style: const TextStyle(
-                  fontSize: 15,
-                  color: Color.fromARGB(255, 34, 67, 67),
-                ),
+                _estaConectado ? _address : '',
+                style: TextStyle(
+                  fontSize: _estaConectado ? 15 : 1),
               ),
 
             ],
@@ -157,6 +253,8 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
 
 
+
+      // ### BODY DE LA APLICACIÓN ###
 
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
@@ -191,15 +289,35 @@ class _MyHomePageState extends State<MyHomePage> {
                   width: MediaQuery.of(context).size.width,
                   child: 
                   FilledButton.tonal(
-                    onPressed: () {ejecutarComando(_comandoActual);},
+                    onPressed: () async {
+                      List lista = await _sendData(_comandoActual);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(lista[0]),duration: const Duration(milliseconds: 5000),
+                            width: 300.0, padding: const EdgeInsets.all( 10.0), behavior: SnackBarBehavior.floating,
+                            backgroundColor: lista[1],
+                          ),
+                        );
+                      }
+                    },
                     child: 
                     Padding(
                       padding:const EdgeInsets.all(10),
                       child: 
-                      Text(listBotones[itemIndex],
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Color.fromARGB(255, 63, 129, 129),
-                          fontSize: 30, fontWeight: FontWeight.bold, height: 0.9),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Text(listBotones[itemIndex], textAlign: TextAlign.center,
+                            style: const TextStyle(color: Color.fromARGB(255, 63, 129, 129),
+                              fontSize: 30, fontWeight: FontWeight.bold, height: 0.9,
+                            ),
+                          ),
+                          Icon(
+                            listIconos[itemIndex], size: 50.0,
+                            color: const Color.fromARGB(255, 63, 129, 129),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -211,6 +329,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 initialPage: 0, autoPlay: true, height: 200,
                 enlargeCenterPage: true, enlargeFactor: 0.3,
                 scrollDirection: Axis.horizontal,
+                onPageChanged: (index, reason){_cambiarComando(index);},
               ),
             ),
 
@@ -220,17 +339,8 @@ class _MyHomePageState extends State<MyHomePage> {
               Text(
                 _descripcion,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 24, 
-                  color: Color.fromARGB(255, 34, 67, 67),
-                ),
+                style: const TextStyle(fontSize: 24),
               ),
-            ),
-
-            Icon(
-              _logoComando,
-              size: 50.0,
-              color: const Color.fromARGB(255, 34, 67, 67),
             ),
 
           ],
@@ -239,8 +349,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
 
 
+      // ### BARRA INFERIOR DE LA APLICACIÓN ###
+
       bottomNavigationBar: BottomAppBar(
-        surfaceTintColor: const Color.fromARGB(0, 0, 0, 0),
+        surfaceTintColor: Theme.of(context).colorScheme.background,
         child: 
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
