@@ -73,6 +73,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+
   static const List<String> listBotones = [
     'ACTIVAR PARADA', 'ACTIVAR ARRANQUE',
     'INCREMENTAR VELOCIDAD', 'REDUCIR VELOCIDAD',
@@ -81,8 +82,8 @@ class _MyHomePageState extends State<MyHomePage> {
   static const List<String> listDescripciones = [
     'El comando de parada detiene el giro del motor independientemente de su nivel de velocidad.',
     'El comando de arranque reanuda el giro del motor en el nivel de velocidad que tenía.',
-    'El comando de incremento, por cada pulsada, incrementa la velocidad del motor.',
-    'El comando de reducción, por cada pulsada, disminuye la velocidad del motor.',
+    'El comando de incrementar, por cada pulsación, aumenta la velocidad del motor.',
+    'El comando de reducir, por cada pulsación, disminuye la velocidad del motor.',
     'El comando de ciclo inicia el ciclo de control cuando es presionado durante una parada.'
   ];
   static const List<IconData> listIconos = [
@@ -90,6 +91,7 @@ class _MyHomePageState extends State<MyHomePage> {
     Icons.fast_forward_rounded, Icons.fast_rewind_rounded,
     Icons.all_inclusive_rounded
   ];
+
 
   CarouselController buttonCarouselController = CarouselController();
 
@@ -101,6 +103,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _cargandoBluetooth = false;
   String _address = '';
   
+
   void _cambiarComando(int nuevoCom) {
     setState(() {
       _comandoActual = nuevoCom;
@@ -158,14 +161,15 @@ class _MyHomePageState extends State<MyHomePage> {
         color = const Color.fromARGB(255, 63, 129, 129);
       }
       else {
-        mensaje = 'No existe conexión con el Arduino.';
+        mensaje = 'No se ha enlazado ninguna conexión con el Arduino.';
       }
     }
     else {
-      mensaje = 'La conexión esta ocupada en otro proceso, espere un momento.';
+      mensaje = 'La conexión está ocupada en otro proceso, por favor espere un momento.';
     }
     return [mensaje, color];
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -191,12 +195,7 @@ class _MyHomePageState extends State<MyHomePage> {
           IconButton(
             onPressed: (){
               if (_cargandoBluetooth == false) {
-                if (_estaConectado) {
-                  _disconnectFromDevice();
-                }
-                else {
-                  _connectToDevice();
-                }
+                _estaConectado ? _disconnectFromDevice() : _connectToDevice();
               }
             },
             tooltip: _estaConectado ? 'Desconectar' : 'Conectar',
