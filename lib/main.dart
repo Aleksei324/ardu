@@ -87,6 +87,9 @@ class _MyHomePageState extends State<MyHomePage> {
     'El comando de reducir, por cada pulsación, disminuye la velocidad del motor.',
     'El comando de ciclo inicia el ciclo de control cuando es presionado durante una parada.'
   ];
+  static const List<String> listComandos = [
+    'P', 'A', 'I', 'R', 'C'
+  ];
   static const List<IconData> listIconos = [
     Icons.pause_rounded, Icons.play_arrow_rounded,
     Icons.fast_forward_rounded, Icons.fast_rewind_rounded,
@@ -155,7 +158,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (_cargandoBluetooth == false) {
       if (_conexion != null) {
-        Uint8List bytes = Uint8List.fromList(utf8.encode(value.toString()));
+        Uint8List bytes = Uint8List.fromList(utf8.encode(listComandos[value]));
         _conexion!.output.add(bytes);
         await _conexion!.output.allSent;
         mensaje = '¡Comando enviado!';
