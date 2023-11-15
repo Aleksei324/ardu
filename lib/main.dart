@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   runApp(const MyApp());
@@ -120,16 +121,30 @@ class _MyHomePageState extends State<MyHomePage> {
       _cargandoBluetooth = true;
     });
 
-    final List<BluetoothDevice> devices = await FlutterBluetoothSerial.instance.getBondedDevices();
-    final BluetoothDevice testDevice = devices.firstWhere((d) => d.name == "HC-05", orElse: () {return const BluetoothDevice(address: '');});
-    
-    if (testDevice.address != '') {
-      final BluetoothConnection connection = await BluetoothConnection.toAddress(testDevice.address);
-      setState(() {
-        _conexion = connection;
-        _address = '${testDevice.name} ${testDevice.address}';
-        _estaConectado = true;
-      });
+    bool statusBT = await Permission.bluetooth.request().isGranted;
+    bool statusBTConnect = await Permission.bluetoothConnect.request().isGranted;
+    bool statusBTScan = await Permission.bluetoothScan.request().isGranted;
+    bool statusLocation = await Permission.location.request().isGranted;
+
+    if (statusBT && statusBTConnect && statusBTScan && statusLocation) {
+
+      try {
+        final List<BluetoothDevice> devices = await FlutterBluetoothSerial.instance.getBondedDevices();
+        final BluetoothDevice testDevice = devices.firstWhere((d) => d.name == "HC-05");
+        final BluetoothConnection connection = await BluetoothConnection.toAddress(testDevice.address);
+
+        setState(() {
+          _conexion = connection;
+          _address = '${testDevice.name} ${testDevice.address}';
+          _estaConectado = true;
+        });
+      } catch (e) {
+        setState(() {
+          _conexion = null;
+          _address = '';
+          _estaConectado = false;
+        });
+      }
     }
 
     setState(() {
